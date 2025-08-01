@@ -2,8 +2,22 @@
 #ifndef CELESTIAL_H
 #define CELESTIAL_H
 
+#include <iostream>
+#include <vector>
 
-#include "HEADER.h"
+
+#include "glad/glad.h"
+#include <GLFW/glfw3.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include "SHADER.h"
+#include "CAMERA.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 
 
 class Planets{
@@ -14,24 +28,60 @@ class Planets{
             setupMesh();
         }
 
-        void Draw(Shader &shader, glm::mat4 model) {
+        void Draw(Shader &shader, glm::mat4 model, int value,const char* texture = "") {
             
+            shader.setInt(texture, value); 
             shader.setMat4("model", model);
 
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textureID);
 
             glBindVertexArray(VAO);
             glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
-        }
-       
-        private:
-        
-        glm::vec3 position;
+            
 
+        }
+        
+        void addTexture(Shader shader,const char* path){
+            glGenTextures(1, &textureID);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            int width, height, nrChannel;
+            stbi_set_flip_vertically_on_load(true);
+            unsigned char* data = stbi_load(path, &width, &height, &nrChannel, 0);
+            
+            if(!data){
+                std::cout << "FAILED TO LOAD TEXTURE\n";
+                return;
+            }
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textureID);
+           
+            GLenum format = GL_RGB;
+            if (nrChannel == 1) format = GL_RED;
+            else if (nrChannel == 3) format = GL_RGB;
+            else if (nrChannel == 4) format = GL_RGBA;
+            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+            glGenerateMipmap(GL_TEXTURE_2D);
+            stbi_image_free(data);
+            
+
+       }
+
+
+        private:
+        glm::vec3 position;
+        
         std::vector<float> vertices;
         std::vector<unsigned int> indices;
 
-        unsigned int VBO = 0, VAO = 0, EBO = 0;
+        unsigned int VBO = 0, VAO = 0, EBO = 0, textureID;;
         int indexCount;
 
 
@@ -53,16 +103,25 @@ class Planets{
                     float yPos = std::cos(phi) * std::cos(theta);
                     float zPos = std::sin(phi);
 
+                    //calculate uv
+                    float xUV = (float)x/X_SEGMENTS;
+                    float yUV = (float)y/Y_SEGMENTS;
+
+
                     //positions
                     vertices.push_back(xPos);
                     vertices.push_back(yPos);
                     vertices.push_back(zPos);
- /*                   
+                   
                     //normals
                     vertices.push_back(xPos);
                     vertices.push_back(yPos);
                     vertices.push_back(zPos);
-*/
+
+                    //texCoord
+                    vertices.push_back(xUV);
+                    vertices.push_back(yUV);
+
 
                 }
             }
@@ -86,25 +145,28 @@ class Planets{
         }
         
         void setupMesh(){
-           glGenVertexArrays(1, &VAO);
-           glGenBuffers(1, &VBO);
-           glGenBuffers(1, &EBO);
+            glGenVertexArrays(1, &VAO);
+            glGenBuffers(1, &VBO);
+            glGenBuffers(1, &EBO);
            
-           glBindVertexArray(VAO);
+            glBindVertexArray(VAO);
            
-           glBindBuffer(GL_ARRAY_BUFFER, VBO);
-           glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
            
-           glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-           glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
            
-           glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-           glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
         
-/*         will add normals later      
-           glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-           glEnableVertexAttribArray(1);
-*/           
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+            glEnableVertexAttribArray(1);
+           
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof(float)));
+            glEnableVertexAttribArray(2);
+            
+
            glBindBuffer(GL_ARRAY_BUFFER, 0);
            glBindVertexArray(0);
         }
