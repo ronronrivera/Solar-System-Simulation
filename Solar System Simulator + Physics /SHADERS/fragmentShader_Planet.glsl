@@ -23,7 +23,7 @@ void main()
     float attenuation = 1.0 / (constant + linear * distance + quadratic * distance * distance);
 
     // ==AMBIENT==
-    float ambientStrength = 0.2f;
+    float ambientStrength = 0.5f;
     vec3 ambient = ambientStrength * vec3(texture(_texture, TexCoords));
     
     // ==DIFFUSE==

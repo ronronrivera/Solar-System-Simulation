@@ -1,0 +1,33 @@
+# Blender 4.5.1 LTS MTL File: 'None'
+# www.blender.org
+
+newmtl master_combined_mat
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd master_combined_mat_baseColor.jpeg
+map_Bump -bm 1.000000 master_combined_mat_normal.png
+
+newmtl thruster_FX_mat1
+Ns 1000.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+map_Kd thruster_FX_mat1_baseColor.png
+map_Ke thruster_FX_mat1_emissive.png
+map_d thruster_FX_mat1_baseColor.png
+
+newmtl thruster_FX_mat2
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+map_Kd thruster_FX_mat2_baseColor.png
+map_Ke thruster_FX_mat2_emissive.png
+map_d thruster_FX_mat2_baseColor.png

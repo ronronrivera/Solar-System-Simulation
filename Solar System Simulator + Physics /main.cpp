@@ -1,24 +1,17 @@
 #include <iostream>
 #include  <memory>
 
-#include "glad/glad.h"
-#include <GLFW/glfw3.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include "SHADER.h"
 #include "CAMERA.h"
-
-#include "HEADER.h"
 #include "CELESTIAL_OBJECTS.h"
+#include "ASSIMP.h"
 
 const unsigned int WIDTH = 1280;
 const unsigned int HEIGHT = 800;
 
 
-Camera camera(glm::vec3(0.0f, 20.0f, -1000.0f));
+Camera camera(glm::vec3(0.0f, 20.0f, -10000.0f));
 
 float lastX = WIDTH / 2.0f;
 float lastY = HEIGHT / 2.0f;
@@ -30,13 +23,19 @@ bool spacePressedLastFrame = false;
 float constant = 1.0f;
 float linear = 0.00045f;
 
-
 //timing
 float deltaTime = 0.0f;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height){
     glViewport(0, 0, width, height);
 }
+
+bool altPressed = false;
+bool altPressedLastFrame = false;
+glm::vec3 shipPosition;
+float orbitDistance = 100.0f;
+float orbitAngle = 0.0f;
+
 
 void processInput(GLFWwindow *window){
 
@@ -70,11 +69,19 @@ void processInput(GLFWwindow *window){
     if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
         camera.ProcessKeyboard(RIGHT, deltaTime);
     }
+    altPressed = glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS;
+    if(altPressed && !altPressedLastFrame){
+        shipPosition = camera.Position + camera.Front * 100.0f + camera.Up * -10.0f;
+        orbitDistance = glm::distance(camera.Position, shipPosition);
+    }
+    altPressedLastFrame = altPressed;
 
 }
 
 void mouse_callback(GLFWwindow *window, double xposIn, double yposIn){
     
+    if(altPressed) return;
+
     float xPos = static_cast<float>(xposIn);
     float yPos = static_cast<float>(yposIn);
 
@@ -152,9 +159,12 @@ int main(){
     Shader starShader("SHADERS/vertexShader_Stars.glsl", "SHADERS/fragmentShader_Stars.glsl");
     Shader moonShader("SHADERS/vertexShader_moon.glsl", "SHADERS/fragmentShader_moon.glsl");
     
+    Shader shipShader("SHADERS/vertexShader_model.glsl", "SHADERS/fragmentShader_model.glsl");
+    Model shipModel("models/ship.obj");
+
     //Star
     glm::vec3 sunPos = glm::vec3(0.0f, 0.0f, 0.0f);
-    float sunScale = 300.0f;
+    float sunScale = 3000.0f;
     celestialBodies.push_back(std::make_unique<Star>(
     starShader,
     sunPos,
@@ -163,13 +173,13 @@ int main(){
 ));
 
     //mercury
-    float mercury_orbitRadius = 600.0f;
-    float mercury_orbitSpeed = 0.5f;
+    float mercury_orbitRadius = 5000.0f;
+    float mercury_orbitSpeed = 0.05f;
     float mercury_spinSpeed = 0.5f;
     
 
     float mercury_axialTilt = glm::radians(0.0f);
-    float mercury_scale = 3.8f;
+    float mercury_scale = 3.8 * 20.0f;
 
     float mercury_quadratic = 1.0f / (mercury_orbitRadius * mercury_orbitRadius);
 
@@ -190,12 +200,12 @@ int main(){
             mercury_quadratic
                 ));
     //vemus
-    float venus_orbitRadius = 900.0f;
-    float venus_orbitSpeed = 0.6f;
+    float venus_orbitRadius = 10000.0f;
+    float venus_orbitSpeed = 0.06f;
     float venus_spinSpeed = 0.6f;
     
     float venus_axialTilt = 177.36f;
-    float venus_scale = 9.5f;
+    float venus_scale = 9.5f * 20.0f;
     
     float venus_quadratic = 1 / (venus_orbitRadius * venus_orbitRadius);
 
@@ -217,11 +227,11 @@ int main(){
     ));
 
     //earth
-    float earth_orbitRadius = 1200.0f;
-    float earth_orbitSpeed = 0.7f;
+    float earth_orbitRadius = 15000.0f;
+    float earth_orbitSpeed = 0.07f;
     float earth_spinSpeed = 0.7f;
     float axialTilt = glm::radians(23.5f);
-    float earthScale = 10.0f;
+    float earthScale = 10.0f * 20;
 
     float quadratic = 1.0f / (earth_orbitRadius * earth_orbitRadius);
     
@@ -241,9 +251,9 @@ int main(){
        quadratic
     ));
 
-    float moonDistanceFromEarth = 20.0f;
-    float moonScale = 1.0f;
-    float moon_OrbitSpeed = 2.7f;
+    float moonDistanceFromEarth = 500.0f;
+    float moonScale = 1.0f * 20.0f;
+    float moon_OrbitSpeed = 0.27f;
     
     float axialTiltMoon = glm::radians(5.0f);
 
@@ -266,16 +276,16 @@ int main(){
     ));   
     
     //mars
-    float mars_orbitRadius = 1500.0f;
-    float mars_orbitSpeed = 0.8f;
+    float mars_orbitRadius = 20000.0f;
+    float mars_orbitSpeed = 0.08f;
     float mars_spinSpeed = 0.8f;
     float mars_axialTilt = glm::radians(25.5f);
-    float marsScale = 5.3f;
+    float marsScale = 5.3f * 20.0f;
 
     float mars_quadratic = 1.0f / (mars_orbitRadius * mars_orbitRadius);
-    
+   
     glm::vec3 marsPos = glm::vec3(mars_orbitRadius, 0.0f, 0.0f);
- 
+
     celestialBodies.push_back(std::make_unique<Planet>(
         planetShader,
         marsPos,
@@ -292,12 +302,12 @@ int main(){
     ));
     
     //jupiter
-    float jupiter_orbitRadius = 1800.0f;
-    float jupiter_orbitSpeed = 0.9f;
+    float jupiter_orbitRadius = 25000.0f;
+    float jupiter_orbitSpeed = 0.09f;
     float jupiter_spinSpeed = 0.9f;
 
     float jupiter_axialTilt = glm::radians(3.13);
-    float jupiterScale = 110.0f;
+    float jupiterScale = 110.0 * 20.0f;
 
     float jupiter_quadratic = 1.0f / (jupiter_orbitRadius * jupiter_orbitRadius);
 
@@ -317,16 +327,40 @@ int main(){
         linear,
         jupiter_quadratic
     ));
+    
+    float planetX_orbitRadius = 30000.0f;
+    float planetX_orbitSpeed = 0.1f;
+    float planetX_spinSpeed = 1.0f;
+    
+    float planetX_axialTilt = glm::radians(0.0f);
+    float planetXScale = 10 * 20.0f;
 
-   while(!glfwWindowShouldClose(window)){
+    float planetX_quadratic = 1.0f / (planetX_orbitRadius * planetX_orbitRadius);
+
+    glm::vec3 planetXpos = glm::vec3(planetX_orbitRadius, 0.0f, 0.0f);
+
+    celestialBodies.push_back(std::make_unique<Planet>(
+        planetShader,
+        planetXpos,
+        "textures/planetX.jpg",
+        planetX_orbitSpeed,
+        planetX_spinSpeed,
+        planetX_axialTilt,
+        planetXScale,
+        sunPos,
+        camera.Position,
+        constant,
+        linear,
+        planetX_quadratic
+    ));
+    
+    while(!glfwWindowShouldClose(window)){
         
         float actualTime = glfwGetTime();
 
         deltaTime = actualTime - lastActualTime;
         lastActualTime = actualTime;
         float FPS = 1.0f / deltaTime;
-        
-//        std::cout << "FPS: " << FPS << std::endl;
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -343,6 +377,51 @@ int main(){
         for(auto &obj: celestialBodies){
             obj->Draw(view, projection, simulationTime);
         }
+        
+        shipShader.use();
+        shipShader.setMat4("view", view);
+        shipShader.setMat4("projection", projection);
+
+
+        shipShader.setVec3("dirLight.direction", sunPos);
+        shipShader.setVec3("dirLight.ambient",  glm::vec3(0.4));
+        shipShader.setVec3("dirLight.diffuse",  glm::vec3(1.0f));
+        shipShader.setVec3("dirLight.specular", glm::vec3(1.0f));
+
+        // Material shininess
+        shipShader.setFloat("material.shininess", 32.0f);
+        
+        if(altPressed){
+            orbitAngle += 0.5f * deltaTime;
+
+            float x = shipPosition.x + orbitDistance * cos(orbitAngle);
+            float z = shipPosition.z + orbitDistance * sin(orbitAngle);
+
+            camera.Position = glm::vec3(x, shipPosition.y + 20.0f, z);
+
+            camera.Front = glm::normalize(shipPosition - camera.Position);
+            camera.Right = glm::normalize(glm::cross(camera.Front, glm::vec3(0.0f, 1.0f, 0.0f)));
+            camera.Up = glm::normalize(glm::cross(camera.Right, camera.Front));
+        }
+        else{
+            shipPosition = camera.Position + camera.Front * 100.0f + camera.Up * -10.0f;
+//            camera.Position = shipPosition - camera.Front * 10.0f;
+        }
+
+        glm::mat4 model = glm::mat4(1.0f);
+        
+        // Offset the ship a bit in front of the camera
+        model = glm::translate(model, camera.Position + camera.Front * 100.0f + camera.Up *  -10.0f);
+        //Rotate the ship to match the camera orientation
+        model = glm::rotate(model, glm::radians(-camera.Yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(-camera.Pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+        
+        //scale the ship down
+        model = glm::scale(model, glm::vec3(1.0f));
+        
+        shipShader.setMat4("model", model);
+
+        shipModel.Draw(shipShader);
 
         processInput(window);
 
